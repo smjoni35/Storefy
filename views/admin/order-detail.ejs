@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order #<%= order.id %></title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <%- include('nav') %>
+    <div class="container order-detail-page">
+        <div class="order-detail-header">
+            <h1>Order #<%= order.id %></h1>
+            <span class="status-badge <%= order.status %>"><%= order.status %></span>
+        </div>
+        <% if (typeof updatedSuccess !== 'undefined' && updatedSuccess) { %>
+            <p class="info-note">✅ অর্ডার স্ট্যাটাস সফলভাবে আপডেট হয়েছে।</p>
+        <% } %>
+        <% if (typeof shippedSuccess !== 'undefined' && shippedSuccess) { %>
+            <p class="info-note">✅ অর্ডারটি কুরিয়ারে (Steadfast) পাঠানো হয়েছে।</p>
+        <% } %>
+        <% if (typeof shipError !== 'undefined' && shipError === 'already') { %>
+            <p class="error-msg">⚠️ এই অর্ডারটি ইতিমধ্যে কুরিয়ারে পাঠানো হয়েছে।</p>
+        <% } else if (typeof shipError !== 'undefined' && shipError) { %>
+            <p class="error-msg">❌ কুরিয়ারে পাঠানো যায়নি — একটু পর আবার চেষ্টা করুন।</p>
+        <% } %>
+        <% if (typeof refreshedSuccess !== 'undefined' && refreshedSuccess) { %>
+            <p class="info-note">✅ কুরিয়ার স্ট্যাটাস আপডেট হয়েছে।</p>
+        <% } %>
+        <% if (typeof refreshError !== 'undefined' && refreshError) { %>
+            <p class="error-msg">❌ স্ট্যাটাস চেক করা যায়নি — একটু পর আবার চেষ্টা করুন।</p>
+        <% } %>
+        <div class="order-detail-box">
+            <div class="order-info-grid">
+                <div class="order-info-item">
+                    <span class="order-info-label">👤 Customer</span>
+                    <span class="order-info-value"><%= order.customer_name %></span>
+                </div>
+                <div class="order-info-item">
+                    <span class="order-info-label">📞 Phone</span>
+                    <span class="order-info-value"><%= order.phone %></span>
+                </div>
+                <div class="order-info-item order-info-item-wide">
+                    <span class="order-info-label">📍 Address</span>
+                    <span class="order-info-value"><%= order.address %>, <%= order.city %></span>
+                </div>
+                <div class="order-info-item">
+                    <span class="order-info-label">💰 Total</span>
+                    <span class="order-info-value order-info-total">৳<%= parseFloat(order.total).toLocaleString('en-BD') %></span>
+                </div>
+                <div class="order-info-item">
+                    <span class="order-info-label">💳 Payment</span>
+                    <span class="order-info-value"><%= paymentLabel(order.payment_method) %></span>
+                </div>
+                <% if (order.coupon_code) { %>
+                <div class="order-info-item">
+                    <span class="order-info-label">🏷️ Coupon</span>
+                    <span class="order-info-value"><%= order.coupon_code %> (-৳<%= parseFloat(order.discount_amount).toLocaleString('en-BD') %>)</span>
+                </div>
+                <% } %>
+                <div class="order-info-item">
+                    <span class="order-info-label">🚚 Delivery charge</span>
+                    <span class="order-info-value">৳<%= parseFloat(order.delivery_charge || 0).toLocaleString('en-BD') %></span>
+                </div>
+                <% if (order.customer_id) { %>
+                <div class="order-info-item">
+                    <span class="order-info-label">👤 Account</span>
+                    <span class="order-info-value">Registered customer (#<%= order.customer_id %>)</span>
+                </div>
+                <% } %>
+            </div>
+
+            <div class="order-actions-row">
+                <a href="/track-order?phone=<%= encodeURIComponent(order.phone) %>" target="_blank" rel="noopener" class="btn-details">📍 Track Order</a>
+                <a href="<%= shopPath %>/admin/orders/<%= order.id %>/invoice?download=1" class="btn-details">🧾 Download Invoice</a>
+                <a href="<%= shopPath %>/admin/orders/<%= order.id %>/invoice" target="_blank" rel="noopener" class="btn-details">🖨️ Print Invoice</a>
+            </div>
+
+            <div class="order-actions-row">
+                <form action="<%= shopPath %>/admin/orders/<%= order.id %>/status" method="POST" class="status-form">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <label>স্ট্যাটাস:
+                        <select name="status">
+                            <option value="pending" <%= order.status === 'pending' ? 'selected' : '' %>>Pending</option>
+                            <option value="confirmed" <%= order.status === 'confirmed' ? 'selected' : '' %>>Confirmed</option>
+                            <option value="shipped" <%= order.status === 'shipped' ? 'selected' : '' %>>Shipped</option>
+                            <option value="delivered" <%= order.status === 'delivered' ? 'selected' : '' %>>Delivered</option>
+                            <option value="cancelled" <%= order.status === 'cancelled' ? 'selected' : '' %>>Cancelled</option>
+                        </select>
+                    </label>
+                    <button type="submit" class="btn-primary">Update</button>
+                </form>
+
+                <form action="<%= shopPath %>/admin/orders/<%= order.id %>/delete" method="POST" class="status-form" onsubmit="return confirm('এই অর্ডারটি স্থায়ীভাবে মুছে ফেলা হবে, এটা আর ফেরত আনা যাবে না। আপনি কি নিশ্চিত?')">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <button type="submit" class="btn-remove">🗑️ Delete Order</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="order-detail-box courier-box">
+            <h3>🚚 কুরিয়ার (Steadfast)</h3>
+            <% if (order.courier_consignment_id) { %>
+                <div class="order-info-grid">
+                    <div class="order-info-item">
+                        <span class="order-info-label">Consignment ID</span>
+                        <span class="order-info-value"><%= order.courier_consignment_id %></span>
+                    </div>
+                    <div class="order-info-item">
+                        <span class="order-info-label">Tracking Code</span>
+                        <span class="order-info-value"><%= order.courier_tracking_code || '-' %></span>
+                    </div>
+                    <div class="order-info-item">
+                        <span class="order-info-label">Courier Status</span>
+                        <span class="order-info-value"><%= order.courier_status || '-' %></span>
+                    </div>
+                </div>
+                <form action="<%= shopPath %>/admin/orders/<%= order.id %>/courier-refresh" method="POST" class="status-form">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <button type="submit" class="btn-details">🔄 স্ট্যাটাস রিফ্রেশ করুন</button>
+                </form>
+            <% } else { %>
+                <p class="policy-updated">এখনো কুরিয়ারে পাঠানো হয়নি।</p>
+                <form action="<%= shopPath %>/admin/orders/<%= order.id %>/ship" method="POST" class="status-form" onsubmit="return confirm('অর্ডারটি Steadfast কুরিয়ারে পাঠানো হবে। আপনি কি নিশ্চিত?')">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <button type="submit" class="btn-primary">📦 কুরিয়ারে পাঠান</button>
+                </form>
+            <% } %>
+        </div>
+
+        <h2>প্রোডাক্টসমূহ</h2>
+        <div class="table-scroll">
+        <table class="admin-table">
+            <thead><tr><th>Product</th><th>Variant</th><th>Price</th><th>Quantity</th><th>Subtotal</th></tr></thead>
+            <tbody>
+                <% items.forEach(item => { %>
+                <tr>
+                    <td><%= item.product_name %></td>
+                    <td><%= item.variant_label || '-' %></td>
+                    <td>৳<%= parseFloat(item.price).toLocaleString('en-BD') %></td>
+                    <td><%= item.quantity %></td>
+                    <td>৳<%= (item.price * item.quantity).toLocaleString('en-BD') %></td>
+                </tr>
+                <% }) %>
+            </tbody>
+            <tfoot>
+                <tr><td colspan="4" class="totals-label">Subtotal</td><td>৳<%= parseFloat(order.subtotal || order.total).toLocaleString('en-BD') %></td></tr>
+                <% if (order.discount_amount > 0) { %>
+                <tr><td colspan="4" class="totals-label">Discount<%= order.coupon_code ? ' (' + order.coupon_code + ')' : '' %></td><td>- ৳<%= parseFloat(order.discount_amount).toLocaleString('en-BD') %></td></tr>
+                <% } %>
+                <tr><td colspan="4" class="totals-label">Delivery charge</td><td>৳<%= parseFloat(order.delivery_charge || 0).toLocaleString('en-BD') %></td></tr>
+                <tr><td colspan="4" class="totals-label totals-grand">Grand Total</td><td class="totals-grand">৳<%= parseFloat(order.total).toLocaleString('en-BD') %></td></tr>
+            </tfoot>
+        </table>
+        </div>
+        <a href="<%= shopPath %>/admin/orders" class="back-link">← Return to order list</a>
+    </div>
+    <%- include('nav-end') %>
+</body>
+</html>
