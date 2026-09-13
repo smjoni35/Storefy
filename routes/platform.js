@@ -27,28 +27,13 @@ function esc(str) {
     }[c]));
 }
 
-router.get('/shops', async (req, res) => {
-    const { rows: shops } = await pool.query('SELECT * FROM shops ORDER BY id ASC');
-    const key = req.query.key;
-
-    const entriesHtml = shops.length ? shops.map(s => `
-        <div class="entry">
-            <span class="entry-id">#${s.id}</span>
-            <div class="entry-body">
-                <div class="entry-name">${esc(s.name)}</div>
-                <div class="entry-meta">
-                    <span class="entry-slug">${esc(s.slug)}</span>
-                    <span class="status ${s.active ? 'is-active' : 'is-inactive'}">${s.active ? 'সচল' : 'বন্ধ'}</span>
-                </div>
-            </div>
-            <a class="entry-link" href="${s.slug === 'default' ? '/' : '/shop/' + s.slug}" target="_blank">দেখুন</a>
-        </div>
-    `).join('') : `<p class="empty">এখনও কোনো শপ যোগ করা হয়নি — নিচের ফর্ম দিয়ে প্রথমটি যোগ করুন।</p>`;
-
-    res.send(`
+// Shared <head> + CSS + brand header, so every platform page (list, create,
+// edit) looks identical without copy-pasting the whole style block each time.
+function pageShell(title, bodyHtml) {
+    return `
         <!DOCTYPE html><html lang="bn"><head><meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Storefy — শপ ম্যানেজার</title>
+        <title>Storefy — ${esc(title)}</title>
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Poppins:wght@600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
         <style>
@@ -80,6 +65,7 @@ router.get('/shops', async (req, res) => {
             .brand-mark { font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 1.4rem; letter-spacing: -0.01em; color: var(--ink); }
             .brand-mark .fy { background: var(--gradient); -webkit-background-clip: text; background-clip: text; color: transparent; }
             .lede { font-size: 0.86rem; color: var(--muted); margin: 0 0 28px; }
+            .back-link { display: inline-block; font-size: 0.84rem; color: var(--muted); text-decoration: none; margin-bottom: 18px; }
 
             h2 {
                 font-family: 'Poppins', sans-serif;
@@ -91,7 +77,7 @@ router.get('/shops', async (req, res) => {
             }
             section { margin-bottom: 36px; }
 
-            .entry { display: flex; align-items: center; gap: 12px; padding: 12px 10px; border-radius: 10px; }
+            .entry { display: flex; align-items: center; gap: 10px; padding: 12px 10px; border-radius: 10px; }
             .entry + .entry { margin-top: 2px; }
             .entry:nth-child(odd) { background: var(--surface); }
             .entry-id { font-family: 'IBM Plex Mono', monospace; font-size: 0.76rem; color: var(--muted); flex: 0 0 auto; }
@@ -102,7 +88,9 @@ router.get('/shops', async (req, res) => {
             .status { font-size: 0.72rem; font-weight: 600; padding: 1px 8px; border-radius: 20px; }
             .status.is-active { background: var(--accent-soft); color: var(--purple); }
             .status.is-inactive { background: var(--danger-soft); color: var(--danger); }
-            .entry-link { flex: 0 0 auto; font-size: 0.84rem; font-weight: 600; color: var(--blue); text-decoration: none; }
+            .entry-actions { flex: 0 0 auto; display: flex; gap: 12px; }
+            .entry-link { font-size: 0.84rem; font-weight: 600; color: var(--blue); text-decoration: none; }
+            .entry-link.muted { color: var(--muted); }
             .empty { color: var(--muted); font-size: 0.9rem; padding: 8px 0; }
 
             fieldset { border: none; padding: 0; margin: 0 0 24px; }
@@ -121,9 +109,14 @@ router.get('/shops', async (req, res) => {
                 outline: none;
             }
             input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--accent-soft); }
+            input:disabled { color: var(--muted); cursor: not-allowed; }
             input::placeholder { color: #A3ADBD; }
+            .hint { font-size: 0.76rem; color: var(--muted); margin-top: 4px; }
             .row-2 { display: flex; gap: 12px; }
             .row-2 .field { flex: 1; }
+            .checkbox-field { display: flex; align-items: center; gap: 8px; }
+            .checkbox-field input { width: auto; }
+            .checkbox-field label { margin: 0; color: var(--ink); font-size: 0.9rem; }
 
             button {
                 width: 100%;
@@ -153,6 +146,32 @@ router.get('/shops', async (req, res) => {
             </svg>
             <span class="brand-mark">Store<span class="fy">fy</span></span>
         </div>
+        ${bodyHtml}
+    </body></html>`;
+}
+
+router.get('/shops', async (req, res) => {
+    const { rows: shops } = await pool.query('SELECT * FROM shops ORDER BY id ASC');
+    const key = req.query.key;
+
+    const entriesHtml = shops.length ? shops.map(s => `
+        <div class="entry">
+            <span class="entry-id">#${s.id}</span>
+            <div class="entry-body">
+                <div class="entry-name">${esc(s.name)}</div>
+                <div class="entry-meta">
+                    <span class="entry-slug">${esc(s.slug)}</span>
+                    <span class="status ${s.active ? 'is-active' : 'is-inactive'}">${s.active ? 'সচল' : 'বন্ধ'}</span>
+                </div>
+            </div>
+            <div class="entry-actions">
+                <a class="entry-link muted" href="/platform/shops/${s.id}/edit?key=${esc(key)}">এডিট</a>
+                <a class="entry-link" href="${s.slug === 'default' ? '/' : '/shop/' + s.slug}" target="_blank">দেখুন</a>
+            </div>
+        </div>
+    `).join('') : `<p class="empty">এখনও কোনো শপ যোগ করা হয়নি — নিচের ফর্ম দিয়ে প্রথমটি যোগ করুন।</p>`;
+
+    const body = `
         <p class="lede">আপনার প্ল্যাটফর্মের অধীনে থাকা সব শপ এখানে দেখুন এবং নতুন শপ যোগ করুন।</p>
 
         <section>
@@ -220,8 +239,114 @@ router.get('/shops', async (req, res) => {
 
                 <button type="submit">শপ তৈরি করুন</button>
             </form>
-        </section>
-    </body></html>`);
+        </section>`;
+
+    res.send(pageShell('শপ ম্যানেজার', body));
+});
+
+router.get('/shops/:id/edit', async (req, res) => {
+    const key = req.query.key;
+    const { rows } = await pool.query('SELECT * FROM shops WHERE id = $1', [req.params.id]);
+    const s = rows[0];
+    if (!s) return res.status(404).send('এই শপ পাওয়া যায়নি।');
+
+    const body = `
+        <a class="back-link" href="/platform/shops?key=${esc(key)}">← শপ তালিকায় ফিরুন</a>
+
+        <section>
+            <h2>${esc(s.name)} — এডিট</h2>
+            <form method="POST" action="/platform/shops/${s.id}/edit?key=${esc(key)}">
+                <input type="hidden" name="key" value="${esc(key)}">
+                <input type="hidden" name="_csrf" value="${esc(req.session.csrfToken)}">
+
+                <fieldset>
+                    <p class="field-group-label">শপের তথ্য</p>
+                    <div class="field">
+                        <label>Slug</label>
+                        <input value="${esc(s.slug)}" disabled>
+                        <p class="hint">Slug পরে বদলানো যায় না — এটা শপের সব লিংকে ব্যবহৃত হয়ে গেছে।</p>
+                    </div>
+                    <div class="field">
+                        <label>শপের নাম</label>
+                        <input name="name" value="${esc(s.name)}" required>
+                    </div>
+                    <div class="field">
+                        <label>ঠিকানা (ঐচ্ছিক)</label>
+                        <input name="address" value="${esc(s.address)}">
+                    </div>
+                    <div class="row-2">
+                        <div class="field">
+                            <label>ফোন (ঐচ্ছিক)</label>
+                            <input name="phone" value="${esc(s.phone)}">
+                        </div>
+                        <div class="field">
+                            <label>ইমেইল (ঐচ্ছিক)</label>
+                            <input name="email" value="${esc(s.email)}">
+                        </div>
+                    </div>
+                </fieldset>
+
+                <fieldset>
+                    <p class="field-group-label">ডেলিভারি চার্জ</p>
+                    <div class="row-2">
+                        <div class="field">
+                            <label>ঢাকার মধ্যে</label>
+                            <input name="delivery_charge_dhaka" type="number" value="${s.delivery_charge_dhaka}">
+                        </div>
+                        <div class="field">
+                            <label>ঢাকার বাইরে</label>
+                            <input name="delivery_charge_outside" type="number" value="${s.delivery_charge_outside}">
+                        </div>
+                    </div>
+                </fieldset>
+
+                <fieldset>
+                    <p class="field-group-label">নোটিফিকেশন (ঐচ্ছিক)</p>
+                    <div class="field">
+                        <label>Telegram Chat ID</label>
+                        <input name="telegram_chat_id" value="${esc(s.telegram_chat_id)}">
+                    </div>
+                    <div class="field">
+                        <label>WhatsApp নম্বর</label>
+                        <input name="whatsapp_number" value="${esc(s.whatsapp_number)}">
+                    </div>
+                </fieldset>
+
+                <fieldset>
+                    <div class="checkbox-field">
+                        <input type="checkbox" name="active" id="active" ${s.active ? 'checked' : ''}>
+                        <label for="active">এই শপ সচল থাকবে</label>
+                    </div>
+                </fieldset>
+
+                <button type="submit">পরিবর্তন সংরক্ষণ করুন</button>
+            </form>
+        </section>`;
+
+    res.send(pageShell(`${s.name} — এডিট`, body));
+});
+
+router.post('/shops/:id/edit', async (req, res) => {
+    const key = req.query.key || req.body.key;
+    const { name, address, phone, email, telegram_chat_id, whatsapp_number } = req.body;
+    const deliveryDhaka = parseFloat(req.body.delivery_charge_dhaka) || 0;
+    const deliveryOutside = parseFloat(req.body.delivery_charge_outside) || 0;
+    const active = req.body.active === 'on';
+
+    if (!name) {
+        return res.status(400).send('শপের নাম আবশ্যক।');
+    }
+
+    await pool.query(
+        `UPDATE shops SET name = $1, address = $2, phone = $3, email = $4,
+         delivery_charge_dhaka = $5, delivery_charge_outside = $6,
+         telegram_chat_id = $7, whatsapp_number = $8, active = $9
+         WHERE id = $10`,
+        [name, address || null, phone || null, email || null, deliveryDhaka, deliveryOutside,
+         telegram_chat_id || null, whatsapp_number || null, active, req.params.id]
+    );
+
+    res.redirect(`/platform/shops?key=${key}`);
 });
 
 router.post('/shops', async (req, res) => {
