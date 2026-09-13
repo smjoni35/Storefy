@@ -18,61 +18,192 @@ function requirePlatformKey(req, res, next) {
 
 router.use(requirePlatformKey);
 
+// Small helper: escape user-entered text before it goes into raw HTML
+// (shop name/slug come from the owner via this same form, but escaping
+// costs nothing and avoids a broken page if a name ever contains < or &).
+function esc(str) {
+    return String(str ?? '').replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+}
+
 router.get('/shops', async (req, res) => {
     const { rows: shops } = await pool.query('SELECT * FROM shops ORDER BY id ASC');
     const key = req.query.key;
-    const rowsHtml = shops.map(s => `
-        <tr>
-            <td>${s.id}</td>
-            <td>${s.slug}</td>
-            <td>${s.name}</td>
-            <td>${s.active ? '✅' : '❌'}</td>
-            <td><a href="${s.slug === 'default' ? '/' : '/shop/' + s.slug}" target="_blank">দেখুন</a></td>
-        </tr>
-    `).join('');
+
+    const entriesHtml = shops.length ? shops.map(s => `
+        <div class="entry">
+            <span class="entry-id">#${s.id}</span>
+            <div class="entry-body">
+                <div class="entry-name">${esc(s.name)}</div>
+                <div class="entry-meta">
+                    <span class="entry-slug">${esc(s.slug)}</span>
+                    <span class="status ${s.active ? 'is-active' : 'is-inactive'}">${s.active ? 'সচল' : 'বন্ধ'}</span>
+                </div>
+            </div>
+            <a class="entry-link" href="${s.slug === 'default' ? '/' : '/shop/' + s.slug}" target="_blank">দেখুন</a>
+        </div>
+    `).join('') : `<p class="empty">এখনও কোনো শপ নিবন্ধিত হয়নি — নিচের ফর্ম দিয়ে প্রথমটি যোগ করুন।</p>`;
 
     res.send(`
         <!DOCTYPE html><html lang="bn"><head><meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>শপ ম্যানেজমেন্ট</title>
+        <title>Storefy — শপ রেজিস্ট্রি</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
         <style>
-            body { font-family: sans-serif; max-width: 560px; margin: 20px auto; padding: 0 12px; }
-            table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
-            td, th { border: 1px solid #ccc; padding: 6px 8px; text-align: left; font-size: 14px; }
-            input, button { width: 100%; padding: 10px; margin: 6px 0; box-sizing: border-box; font-size: 15px; }
-            button { background: #16a34a; color: white; border: none; border-radius: 6px; }
-            fieldset { border: 1px solid #ddd; border-radius: 8px; padding: 12px; }
-        </style></head><body>
-        <h2>শপ তালিকা</h2>
-        <table><tr><th>ID</th><th>Slug</th><th>নাম</th><th>Active</th><th></th></tr>${rowsHtml}</table>
+            :root {
+                --paper: #F7F5EF;
+                --ink: #1C1B18;
+                --muted: #8B8477;
+                --line: #DDD7C7;
+                --accent: #1F5D50;
+                --accent-soft: #E3EEE8;
+                --danger: #B14434;
+            }
+            * { box-sizing: border-box; }
+            body {
+                font-family: 'Hind Siliguri', sans-serif;
+                background: var(--paper);
+                color: var(--ink);
+                max-width: 480px;
+                margin: 0 auto;
+                padding: 28px 20px 60px;
+                line-height: 1.5;
+            }
+            .brand { display: flex; align-items: baseline; gap: 10px; margin-bottom: 2px; }
+            .brand-mark { font-weight: 700; font-size: 1.5rem; letter-spacing: -0.01em; }
+            .brand-tag { font-size: 0.8rem; color: var(--muted); }
+            .lede { font-size: 0.88rem; color: var(--muted); margin: 0 0 28px; }
 
-        <h2>নতুন শপ তৈরি করুন</h2>
-        <form method="POST" action="/platform/shops?key=${key}">
-            <input type="hidden" name="key" value="${key}">
-            <input type="hidden" name="_csrf" value="${req.session.csrfToken}">
-            <fieldset>
-                <label>Slug (URL-এ ব্যবহার হবে, শুধু ইংরেজি/সংখ্যা/হাইফেন)</label>
-                <input name="slug" placeholder="e.g. rahim-electronics" required pattern="[a-z0-9-]+">
-                <label>শপের নাম</label>
-                <input name="name" placeholder="e.g. Rahim Electronics" required>
-                <label>ঠিকানা</label>
-                <input name="address" placeholder="ঠিকানা (ঐচ্ছিক)">
-                <label>ফোন</label>
-                <input name="phone" placeholder="ফোন (ঐচ্ছিক)">
-                <label>ইমেইল</label>
-                <input name="email" placeholder="ইমেইল (ঐচ্ছিক)">
-                <label>ঢাকার মধ্যে ডেলিভারি চার্জ</label>
-                <input name="delivery_charge_dhaka" type="number" placeholder="70">
-                <label>ঢাকার বাইরে ডেলিভারি চার্জ</label>
-                <input name="delivery_charge_outside" type="number" placeholder="130">
-                <hr>
-                <label>এই শপের প্রথম অ্যাডমিন — Username</label>
-                <input name="admin_username" placeholder="e.g. rahim" required>
-                <label>এই শপের প্রথম অ্যাডমিন — Password</label>
-                <input name="admin_password" type="text" placeholder="একটা শক্ত পাসওয়ার্ড দিন" required>
-                <button type="submit">শপ তৈরি করুন</button>
-            </fieldset>
-        </form>
+            h2 {
+                font-size: 1.05rem;
+                font-weight: 600;
+                margin: 0 0 14px;
+                padding-bottom: 10px;
+                border-bottom: 1px solid var(--line);
+            }
+            section { margin-bottom: 36px; }
+
+            .entry { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+            .entry:last-child { border-bottom: none; }
+            .entry-id { font-family: 'IBM Plex Mono', monospace; font-size: 0.78rem; color: var(--muted); flex: 0 0 auto; }
+            .entry-body { flex: 1 1 auto; min-width: 0; }
+            .entry-name { font-weight: 600; font-size: 0.95rem; }
+            .entry-meta { display: flex; align-items: center; gap: 10px; margin-top: 2px; }
+            .entry-slug { font-family: 'IBM Plex Mono', monospace; font-size: 0.76rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            .status { font-size: 0.74rem; padding: 1px 8px; border-radius: 3px; }
+            .status.is-active { background: var(--accent-soft); color: var(--accent); }
+            .status.is-inactive { background: #F3E4E1; color: var(--danger); }
+            .entry-link { flex: 0 0 auto; font-size: 0.85rem; color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+            .empty { color: var(--muted); font-size: 0.9rem; padding: 8px 0; }
+
+            fieldset { border: none; padding: 0; margin: 0 0 24px; }
+            .field-group-label { font-weight: 600; font-size: 0.88rem; margin: 0 0 12px; }
+            label { display: block; font-size: 0.82rem; color: var(--muted); margin-bottom: 4px; }
+            .field { margin-bottom: 16px; }
+            input {
+                width: 100%;
+                font-family: inherit;
+                font-size: 0.95rem;
+                color: var(--ink);
+                background: transparent;
+                border: none;
+                border-bottom: 1px solid var(--line);
+                padding: 6px 2px;
+                outline: none;
+            }
+            input:focus { border-bottom: 1.5px solid var(--accent); }
+            input::placeholder { color: #B7B0A0; }
+            .row-2 { display: flex; gap: 16px; }
+            .row-2 .field { flex: 1; }
+
+            button {
+                width: 100%;
+                font-family: inherit;
+                font-size: 0.98rem;
+                font-weight: 600;
+                background: var(--accent);
+                color: var(--paper);
+                border: none;
+                border-radius: 4px;
+                padding: 13px;
+                margin-top: 8px;
+                cursor: pointer;
+            }
+            button:hover { background: #17473d; }
+            button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+        </style></head><body>
+
+        <div class="brand"><span class="brand-mark">Storefy</span><span class="brand-tag">শপ রেজিস্ট্রি</span></div>
+        <p class="lede">আপনার প্ল্যাটফর্মের অধীনে থাকা সব শপ এখানে দেখুন এবং নতুন শপ নিবন্ধন করুন।</p>
+
+        <section>
+            <h2>নিবন্ধিত শপ</h2>
+            ${entriesHtml}
+        </section>
+
+        <section>
+            <h2>নতুন শপ নিবন্ধন</h2>
+            <form method="POST" action="/platform/shops?key=${esc(key)}">
+                <input type="hidden" name="key" value="${esc(key)}">
+                <input type="hidden" name="_csrf" value="${esc(req.session.csrfToken)}">
+
+                <fieldset>
+                    <p class="field-group-label">শপের তথ্য</p>
+                    <div class="field">
+                        <label>Slug — URL-এ ব্যবহার হবে, শুধু ইংরেজি/সংখ্যা/হাইফেন</label>
+                        <input name="slug" placeholder="e.g. rahim-electronics" required pattern="[a-z0-9-]+">
+                    </div>
+                    <div class="field">
+                        <label>শপের নাম</label>
+                        <input name="name" placeholder="e.g. Rahim Electronics" required>
+                    </div>
+                    <div class="field">
+                        <label>ঠিকানা (ঐচ্ছিক)</label>
+                        <input name="address" placeholder="ঠিকানা">
+                    </div>
+                    <div class="row-2">
+                        <div class="field">
+                            <label>ফোন (ঐচ্ছিক)</label>
+                            <input name="phone" placeholder="ফোন">
+                        </div>
+                        <div class="field">
+                            <label>ইমেইল (ঐচ্ছিক)</label>
+                            <input name="email" placeholder="ইমেইল">
+                        </div>
+                    </div>
+                </fieldset>
+
+                <fieldset>
+                    <p class="field-group-label">ডেলিভারি চার্জ</p>
+                    <div class="row-2">
+                        <div class="field">
+                            <label>ঢাকার মধ্যে</label>
+                            <input name="delivery_charge_dhaka" type="number" placeholder="70">
+                        </div>
+                        <div class="field">
+                            <label>ঢাকার বাইরে</label>
+                            <input name="delivery_charge_outside" type="number" placeholder="130">
+                        </div>
+                    </div>
+                </fieldset>
+
+                <fieldset>
+                    <p class="field-group-label">এই শপের প্রথম অ্যাডমিন</p>
+                    <div class="field">
+                        <label>Username</label>
+                        <input name="admin_username" placeholder="e.g. rahim" required>
+                    </div>
+                    <div class="field">
+                        <label>Password</label>
+                        <input name="admin_password" type="text" placeholder="একটা শক্ত পাসওয়ার্ড দিন" required>
+                    </div>
+                </fieldset>
+
+                <button type="submit">শপ নিবন্ধন করুন</button>
+            </form>
+        </section>
     </body></html>`);
 });
 
