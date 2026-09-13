@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shop Settings</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .faq-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: flex-start; }
+        .faq-row .faq-fields { flex: 1 1 auto; display: flex; flex-direction: column; gap: 6px; }
+        .faq-row input, .faq-row textarea { width: 100%; }
+        .faq-remove-btn { flex: 0 0 auto; background: none; border: 1px solid #DC3B5D; color: #DC3B5D; border-radius: 6px; padding: 8px 10px; cursor: pointer; font-size: 0.85rem; }
+        .faq-add-btn { margin: 4px 0 24px; }
+        .success-msg { background: #EAFBF1; color: #1E8E5A; padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+    <%- include('nav') %>
+    <div class="container admin-form-page">
+        <h1>Shop Settings</h1>
+        <% if (saved) { %><p class="success-msg">সেভ হয়েছে।</p><% } %>
+        <% if (error) { %><p class="error-msg"><%= error %></p><% } %>
+
+        <form action="<%= shopPath %>/admin/settings" method="POST" class="admin-form" id="settingsForm">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+            <p class="field-group-label">শপের তথ্য</p>
+            <label>শপের নাম *
+                <input type="text" name="name" value="<%= shop.name || '' %>" required>
+            </label>
+            <label>ঠিকানা
+                <input type="text" name="address" value="<%= shop.address || '' %>">
+            </label>
+            <label>ফোন
+                <input type="text" name="phone" value="<%= shop.phone || '' %>">
+            </label>
+            <label>ইমেইল
+                <input type="email" name="email" value="<%= shop.email || '' %>">
+            </label>
+            <label>WhatsApp নম্বর <span class="field-hint">দেশের কোডসহ, শুধু সংখ্যা — যেমন 8801735698806। FAQ ও রিটার্ন পলিসি পেজে কাস্টমারদের WhatsApp বাটনে এটাই ব্যবহার হবে।</span>
+                <input type="text" name="whatsapp_number" value="<%= shop.whatsapp_number || '' %>">
+            </label>
+
+            <p class="field-group-label" style="margin-top: 28px;">রিটার্ন ও এক্সচেঞ্জ পলিসি</p>
+            <label>পলিসি টেক্সট <span class="field-hint">প্রতিটা প্যারাগ্রাফের মাঝে একটা খালি লাইন দিন — সেভাবেই ওয়েবসাইটে আলাদা আলাদা প্যারাগ্রাফ হিসেবে দেখাবে।</span>
+                <textarea name="return_policy" rows="10"><%= shop.return_policy || '' %></textarea>
+            </label>
+
+            <p class="field-group-label" style="margin-top: 28px;">FAQ (সাধারণ জিজ্ঞাসা)</p>
+            <div id="faqList">
+                <% (shop.faq || []).forEach(function(item, i) { %>
+                <div class="faq-row">
+                    <div class="faq-fields">
+                        <input type="text" name="faq_question" placeholder="প্রশ্ন" value="<%= item.question || '' %>">
+                        <textarea name="faq_answer" placeholder="উত্তর" rows="2"><%= item.answer || '' %></textarea>
+                    </div>
+                    <button type="button" class="faq-remove-btn" onclick="this.closest('.faq-row').remove()">Remove</button>
+                </div>
+                <% }) %>
+            </div>
+            <button type="button" class="faq-add-btn" id="addFaqBtn">+ নতুন প্রশ্ন যোগ করুন</button>
+
+            <button type="submit" class="btn-primary">Save</button>
+        </form>
+    </div>
+
+    <template id="faqRowTemplate">
+        <div class="faq-row">
+            <div class="faq-fields">
+                <input type="text" name="faq_question" placeholder="প্রশ্ন">
+                <textarea name="faq_answer" placeholder="উত্তর" rows="2"></textarea>
+            </div>
+            <button type="button" class="faq-remove-btn" onclick="this.closest('.faq-row').remove()">Remove</button>
+        </div>
+    </template>
+
+    <script>
+        document.getElementById('addFaqBtn').addEventListener('click', function () {
+            var tpl = document.getElementById('faqRowTemplate');
+            var clone = tpl.content.cloneNode(true);
+            document.getElementById('faqList').appendChild(clone);
+        });
+    </script>
+
+    <%- include('nav-end') %>
+</body>
+</html>
