@@ -279,3 +279,15 @@ ALTER TABLE shops ADD COLUMN IF NOT EXISTS faq JSONB DEFAULT
 -- UNIQUE(shop_id, phone) instead.
 ALTER TABLE customers DROP CONSTRAINT IF EXISTS customers_phone_key;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_customers_shop_phone ON customers(shop_id, phone);
+
+-- ==========================================================================
+-- MULTI-SHOP (Phase 2) — root (/) is now the Storefy brand/marketing site
+-- (see routes/brand.js), not a shop. The original "default" shop keeps all
+-- its products/orders/customers — it just moves to its own slug so it lives
+-- at /shop/jm-gadget-zone like every other shop, instead of squatting on
+-- root. Old bare-URL links still work: middleware/shop.js redirects any
+-- non-/shop/:slug request to this slug. Guarded so it only runs once.
+-- ==========================================================================
+UPDATE shops SET slug = 'jm-gadget-zone'
+WHERE slug = 'default'
+  AND NOT EXISTS (SELECT 1 FROM shops WHERE slug = 'jm-gadget-zone');
