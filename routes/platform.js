@@ -49,6 +49,7 @@ router.get('/shops', async (req, res) => {
         <h2>নতুন শপ তৈরি করুন</h2>
         <form method="POST" action="/platform/shops?key=${key}">
             <input type="hidden" name="key" value="${key}">
+            <input type="hidden" name="_csrf" value="${req.session.csrfToken}">
             <fieldset>
                 <label>Slug (URL-এ ব্যবহার হবে, শুধু ইংরেজি/সংখ্যা/হাইফেন)</label>
                 <input name="slug" placeholder="e.g. rahim-electronics" required pattern="[a-z0-9-]+">
