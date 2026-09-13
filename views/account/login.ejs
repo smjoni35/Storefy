@@ -3,21 +3,67 @@
 <div class="auth-page">
     <h1 class="page-title">লগইন করুন</h1>
 
-    <% if (error) { %><p class="error-msg"><%= error %></p><% } %>
+    <div class="login-tabs" style="display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid #E4E7EC;">
+        <button type="button" id="tabCustomerBtn" class="login-tab-btn active" style="flex: 1; padding: 10px; border: none; background: none; font-weight: 600; cursor: pointer; border-bottom: 2px solid var(--blue, #2F80ED); color: var(--blue, #2F80ED);">কাস্টমার লগইন</button>
+        <button type="button" id="tabOwnerBtn" class="login-tab-btn" style="flex: 1; padding: 10px; border: none; background: none; font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent; color: #64748B;">শপ মালিক / স্টাফ লগইন</button>
+    </div>
 
-    <form action="<%= shopPath %>/account/login" method="POST" class="checkout-form">
-        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-        <input type="hidden" name="next" value="<%= next %>">
-        <label>মোবাইল নম্বর *
-            <input type="tel" name="phone" placeholder="01XXXXXXXXX" required>
-        </label>
-        <label>পাসওয়ার্ড *
-            <input type="password" name="password" required>
-        </label>
-        <button type="submit" class="btn-primary">লগইন</button>
-    </form>
+    <div id="customerLoginPane">
+        <% if (error) { %><p class="error-msg"><%= error %></p><% } %>
+        <form action="<%= shopPath %>/account/login" method="POST" class="checkout-form">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <input type="hidden" name="next" value="<%= next %>">
+            <label>মোবাইল নম্বর *
+                <input type="tel" name="phone" placeholder="01XXXXXXXXX" required>
+            </label>
+            <label>পাসওয়ার্ড *
+                <input type="password" name="password" required>
+            </label>
+            <button type="submit" class="btn-primary">লগইন</button>
+        </form>
+        <p class="auth-switch">অ্যাকাউন্ট নেই? <a href="<%= shopPath %>/account/register">অ্যাকাউন্ট তৈরি করুন</a></p>
+    </div>
 
-    <p class="auth-switch">অ্যাকাউন্ট নেই? <a href="<%= shopPath %>/account/register">অ্যাকাউন্ট তৈরি করুন</a></p>
+    <div id="ownerLoginPane" style="display: none;">
+        <form action="<%= shopPath %>/admin/login" method="POST" class="checkout-form">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <label>ইউজারনেম *
+                <input type="text" name="username" required>
+            </label>
+            <label>পাসওয়ার্ড *
+                <input type="password" name="password" required>
+            </label>
+            <button type="submit" class="btn-primary">লগইন</button>
+        </form>
+    </div>
 </div>
+
+<script>
+(function () {
+    var custBtn = document.getElementById('tabCustomerBtn');
+    var ownerBtn = document.getElementById('tabOwnerBtn');
+    var custPane = document.getElementById('customerLoginPane');
+    var ownerPane = document.getElementById('ownerLoginPane');
+
+    function showCustomer() {
+        custPane.style.display = '';
+        ownerPane.style.display = 'none';
+        custBtn.style.color = 'var(--blue, #2F80ED)';
+        custBtn.style.borderBottomColor = 'var(--blue, #2F80ED)';
+        ownerBtn.style.color = '#64748B';
+        ownerBtn.style.borderBottomColor = 'transparent';
+    }
+    function showOwner() {
+        custPane.style.display = 'none';
+        ownerPane.style.display = '';
+        ownerBtn.style.color = 'var(--blue, #2F80ED)';
+        ownerBtn.style.borderBottomColor = 'var(--blue, #2F80ED)';
+        custBtn.style.color = '#64748B';
+        custBtn.style.borderBottomColor = 'transparent';
+    }
+    custBtn.addEventListener('click', showCustomer);
+    ownerBtn.addEventListener('click', showOwner);
+})();
+</script>
 
 <%- include('../partials/footer') %>
