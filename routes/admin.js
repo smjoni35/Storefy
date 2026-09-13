@@ -848,4 +848,39 @@ router.get('/activity-log', requireRole('admin'), async (req, res) => {
     res.render('admin/activity-log', { pageTitle: 'Activity Log', logs, page, totalPages, totalCount });
 });
 
+// Shop settings — name/address/phone/email/WhatsApp, return policy, and FAQ.
+// Admin-only (not manager/moderator), and always scoped to req.shop.id — a
+// shop owner can only ever edit their own shop, never another one.
+router.get('/settings', requireRole('admin'), (req, res) => {
+    res.render('admin/settings', { pageTitle: 'Shop Settings', shop: req.shop, error: null, saved: false });
+});
+
+router.post('/settings', requireRole('admin'), async (req, res) => {
+    const { name, address, phone, email, whatsapp_number, return_policy } = req.body;
+    const faqQuestions = [].concat(req.body.faq_question || []);
+    const faqAnswers = [].concat(req.body.faq_answer || []);
+    const faq = faqQuestions
+        .map((q, i) => ({ question: (q || '').toString().trim(), answer: (faqAnswers[i] || '').toString().trim() }))
+        .filter(item => item.question && item.answer);
+
+    const formState = { ...req.shop, ...req.body, faq };
+
+    if (!name || !name.trim()) {
+        return res.render('admin/settings', { pageTitle: 'Shop Settings', shop: formState, error: 'শপের নাম আবশ্যক।', saved: false });
+    }
+
+    try {
+        await pool.query(
+            `UPDATE shops SET name=$1, address=$2, phone=$3, email=$4, whatsapp_number=$5, return_policy=$6, faq=$7 WHERE id=$8`,
+            [name.trim(), address || null, phone || null, email || null, whatsapp_number || null, return_policy || null, JSON.stringify(faq), req.shop.id]
+        );
+        logActivity(req, 'Updated shop settings', name.trim());
+        const { rows } = await pool.query('SELECT * FROM shops WHERE id = $1', [req.shop.id]);
+        res.render('admin/settings', { pageTitle: 'Shop Settings', shop: rows[0], error: null, saved: true });
+    } catch (err) {
+        console.error(err);
+        res.render('admin/settings', { pageTitle: 'Shop Settings', shop: formState, error: 'সেভ করা যায়নি, আবার চেষ্টা করুন।', saved: false });
+    }
+});
+
 module.exports = router;

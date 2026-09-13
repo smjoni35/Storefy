@@ -55,14 +55,22 @@ function buildProductQuery({ shopId, category, q, minPrice, maxPrice }) {
     return { query, params };
 }
 
-// Static info page — return / exchange policy
+// Info page — return / exchange policy (each shop owner edits this from /admin/settings)
 router.get('/return-policy', (req, res) => {
-    res.render('return-policy', { title: 'রিটার্ন ও এক্সচেঞ্জ পলিসি' });
+    res.render('return-policy', {
+        title: 'রিটার্ন ও এক্সচেঞ্জ পলিসি',
+        returnPolicy: req.shop.return_policy || '',
+        whatsappNumber: req.shop.whatsapp_number || ''
+    });
 });
 
-// Static info page — frequently asked questions
+// Info page — frequently asked questions (each shop owner edits this from /admin/settings)
 router.get('/faq', (req, res) => {
-    res.render('faq', { title: 'সাধারণ জিজ্ঞাসা (FAQ)' });
+    res.render('faq', {
+        title: 'সাধারণ জিজ্ঞাসা (FAQ)',
+        faqItems: req.shop.faq || [],
+        whatsappNumber: req.shop.whatsapp_number || ''
+    });
 });
 
 // Home page — product grid, optional category/search/price filters, sort, pagination
