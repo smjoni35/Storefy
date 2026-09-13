@@ -183,8 +183,8 @@ router.get('/', (req, res) => {
 
     header.nav { padding: 20px 0; border-bottom: 1px solid var(--line); }
     .nav-inner { display: flex; align-items: center; justify-content: space-between; }
-    .brand-mark { font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 1.4rem; }
-    .brand-mark .fy { background: var(--gradient); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .brand-mark { display: flex; align-items: center; }
+    .brand-mark img { height: 34px; width: auto; display: block; }
     .nav-links { display: flex; gap: 24px; font-size: 0.92rem; font-weight: 500; }
     .nav-links a:hover { color: var(--blue); }
 
@@ -270,7 +270,7 @@ router.get('/', (req, res) => {
 
 <header class="nav">
     <div class="container nav-inner">
-        <span class="brand-mark">Store<span class="fy">fy</span></span>
+        <span class="brand-mark"><img src="/img/brand/logo-full.png" alt="Storefy"></span>
         <nav class="nav-links">
             <a href="#features">ফিচার</a>
             <a href="#how-it-works">কীভাবে কাজ করে</a>
