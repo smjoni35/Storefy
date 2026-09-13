@@ -1,11 +1,18 @@
 const express = require('express');
 const router = express.Router();
+const pool = require('../db/pool');
 
 // Storefy's own public marketing site. Lives at root (/) and is completely
 // separate from any shop — mounted in server.js BEFORE session/resolveShop,
 // so it never touches the shops table and a shop being down can never take
 // this page down with it. Any path other than the ones defined below falls
 // through to the rest of the app untouched (see middleware/shop.js).
+//
+// The one exception is /find-shop just below, which DOES touch the shops
+// table (read-only) — every shop's admin login lives at a different
+// /shop/:slug/admin/login URL, so there's no single "Login" link that works
+// for everyone. This page exists so a client who forgot their exact link
+// can find it by typing their shop's name or slug.
 //
 // TODO(JonS): replace the WhatsApp number / phone / email placeholders below
 // with your real Storefy business contact details before going live.
@@ -185,8 +192,11 @@ router.get('/', (req, res) => {
     .nav-inner { display: flex; align-items: center; justify-content: space-between; }
     .brand-mark { display: flex; align-items: center; }
     .brand-mark img { height: 34px; width: auto; display: block; }
-    .nav-links { display: flex; gap: 24px; font-size: 0.92rem; font-weight: 500; }
+    .nav-right { display: flex; align-items: center; gap: 20px; }
+    .nav-links { display: flex; align-items: center; gap: 24px; font-size: 0.92rem; font-weight: 500; }
     .nav-links a:hover { color: var(--blue); }
+    .nav-login { padding: 8px 16px; border: 1px solid var(--line); border-radius: 8px; font-size: 0.88rem; font-weight: 600; white-space: nowrap; }
+    .nav-login:hover { border-color: var(--blue); color: var(--blue); }
 
     .hero { padding: 64px 0 56px; text-align: center; }
     .hero h1 { font-size: clamp(1.7rem, 5vw, 2.6rem); font-weight: 700; margin: 0 0 18px; line-height: 1.35; }
@@ -271,13 +281,16 @@ router.get('/', (req, res) => {
 <header class="nav">
     <div class="container nav-inner">
         <span class="brand-mark"><img src="/img/brand/logo-full.png" alt="Storefy"></span>
-        <nav class="nav-links">
-            <a href="#features">ফিচার</a>
-            <a href="#how-it-works">কীভাবে কাজ করে</a>
-            <a href="#pricing">প্যাকেজ</a>
-            <a href="#demo">লাইভ ডেমো</a>
-            <a href="#contact">যোগাযোগ</a>
-        </nav>
+        <div class="nav-right">
+            <nav class="nav-links">
+                <a href="#features">ফিচার</a>
+                <a href="#how-it-works">কীভাবে কাজ করে</a>
+                <a href="#pricing">প্যাকেজ</a>
+                <a href="#demo">লাইভ ডেমো</a>
+                <a href="#contact">যোগাযোগ</a>
+            </nav>
+            <a href="/find-shop" class="nav-login">শপ লগইন</a>
+        </div>
     </div>
 </header>
 
@@ -386,6 +399,129 @@ router.get('/', (req, res) => {
 <footer>
     <div class="container">© ${new Date().getFullYear()} Storefy. সর্বস্বত্ব সংরক্ষিত।</div>
 </footer>
+
+</body>
+</html>`;
+
+    res.send(html);
+});
+
+// Every shop's admin login lives at a different /shop/:slug/admin/login —
+// there's no single URL a generic "Login" button on the homepage could go
+// to. This page lets a client find their own link by typing their shop's
+// name or slug, read-only (no session/CSRF needed since nothing is
+// written), then sends them straight to their shop's login page.
+router.get('/find-shop', async (req, res) => {
+    const q = (req.query.q || '').trim().slice(0, 100);
+    let results = [];
+    let searchFailed = false;
+
+    if (q) {
+        try {
+            const { rows } = await pool.query(
+                `SELECT slug, name FROM shops
+                 WHERE active = TRUE AND (slug = $1 OR name ILIKE $2)
+                 ORDER BY name ASC
+                 LIMIT 10`,
+                [q.toLowerCase(), `%${q}%`]
+            );
+            results = rows;
+        } catch (err) {
+            console.error('find-shop lookup failed:', err);
+            searchFailed = true;
+        }
+    }
+
+    // Exactly one match (almost always true for a slug, and usually true
+    // for a name search too) — skip the results list and go straight there.
+    if (results.length === 1) {
+        return res.redirect(`/shop/${results[0].slug}/admin/login`);
+    }
+
+    let resultsHtml = '';
+    if (searchFailed) {
+        resultsHtml = `<p class="find-shop-empty">একটু সমস্যা হয়েছে, আবার চেষ্টা করুন।</p>`;
+    } else if (q && results.length === 0) {
+        resultsHtml = `<p class="find-shop-empty">"${esc(q)}" নামে কোনো শপ পাওয়া যায়নি। বানান ঠিক আছে কিনা দেখুন, অথবা <a href="https://wa.me/${esc(CONTACT.whatsapp)}" target="_blank" rel="noopener">যোগাযোগ করুন</a>।</p>`;
+    } else if (results.length > 1) {
+        resultsHtml = `
+            <p class="find-shop-hint">একাধিক মিল পাওয়া গেছে, আপনারটা বেছে নিন:</p>
+            <div class="shop-results">
+                ${results.map(r => `
+                    <a class="shop-result" href="/shop/${esc(r.slug)}/admin/login">
+                        <span>${esc(r.name)}</span>
+                        <span class="shop-result-arrow">→</span>
+                    </a>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    const html = `<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>শপ লগইন খুঁজুন — Storefy</title>
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/x-icon" href="/img/brand/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/img/brand/favicon-32x32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/img/brand/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --bg: #FFFFFF; --surface: #F8F9FC; --ink: #0F172A; --muted: #64748B;
+        --line: #E4E7EC; --blue: #2F80ED; --purple: #7B2FF7;
+        --gradient: linear-gradient(90deg, var(--blue), var(--purple));
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'Hind Siliguri', sans-serif; background: var(--bg); color: var(--ink); line-height: 1.6; }
+    h1 { font-family: 'Poppins', sans-serif; }
+    a { color: inherit; }
+    .container { max-width: 440px; margin: 0 auto; padding: 0 24px; }
+    header.nav { padding: 20px 0; border-bottom: 1px solid var(--line); }
+    .nav-inner { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+    .brand-mark img { height: 30px; width: auto; display: block; }
+    .find-shop { padding: 64px 0; text-align: center; }
+    .find-shop h1 { font-size: 1.5rem; margin: 0 0 8px; }
+    .find-shop-sub { color: var(--muted); font-size: 0.92rem; margin: 0 0 32px; }
+    .find-shop-form { display: flex; gap: 10px; }
+    .find-shop-form input { flex: 1; padding: 13px 16px; border: 1px solid var(--line); border-radius: 10px; font-size: 0.95rem; font-family: inherit; }
+    .find-shop-form input:focus { outline: none; border-color: var(--blue); }
+    .find-shop-form button { padding: 13px 22px; border: none; border-radius: 10px; background: var(--gradient); color: #fff; font-weight: 600; font-size: 0.95rem; cursor: pointer; }
+    .find-shop-empty { margin-top: 22px; color: var(--muted); font-size: 0.9rem; }
+    .find-shop-empty a { color: var(--blue); font-weight: 600; }
+    .find-shop-hint { margin-top: 26px; font-size: 0.88rem; color: var(--muted); text-align: left; }
+    .shop-results { margin-top: 10px; display: flex; flex-direction: column; gap: 10px; }
+    .shop-result { display: flex; justify-content: space-between; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 18px; text-decoration: none; font-size: 0.92rem; font-weight: 500; transition: border-color 0.15s; }
+    .shop-result:hover { border-color: var(--blue); }
+    .shop-result-arrow { color: var(--blue); font-weight: 700; }
+    .back-home { display: inline-block; margin-top: 28px; font-size: 0.85rem; color: var(--muted); }
+    .back-home:hover { color: var(--blue); }
+</style>
+</head>
+<body>
+
+<header class="nav">
+    <div class="nav-inner">
+        <a href="/" class="brand-mark"><img src="/img/brand/logo-full.png" alt="Storefy"></a>
+    </div>
+</header>
+
+<section class="find-shop">
+    <div class="container">
+        <h1>আপনার শপ খুঁজুন</h1>
+        <p class="find-shop-sub">শপের নাম বা লিংকের শেষ অংশ (slug) লিখুন — সরাসরি আপনার লগইন পেজে নিয়ে যাব</p>
+        <form method="GET" action="/find-shop" class="find-shop-form">
+            <input type="text" name="q" placeholder="যেমনঃ JM Gadget Zone" value="${esc(q)}" autofocus required>
+            <button type="submit">খুঁজুন</button>
+        </form>
+        ${resultsHtml}
+        <a href="/" class="back-home">← হোমপেজে ফিরে যান</a>
+    </div>
+</section>
 
 </body>
 </html>`;
