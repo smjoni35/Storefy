@@ -79,7 +79,7 @@
                 <span class="admin-topbar-title"><%= typeof pageTitle !== 'undefined' ? pageTitle : 'Dashboard' %></span>
             </div>
             <div class="admin-topbar-right">
-                <a href="/" target="_blank" class="admin-visit-site">
+                <a href="<%= shopPath %>/" target="_blank" class="admin-visit-site">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
                     <span class="vs-text">Visit Site</span>
                 </a>
@@ -93,7 +93,7 @@
                             <div class="profile-dropdown-user"><%= currentUsername %></div>
                             <% if (currentRole) { %><span class="role-badge role-<%= currentRole %>"><%= currentRole.charAt(0).toUpperCase() + currentRole.slice(1) %></span><% } %>
                         </div>
-                        <a href="/" target="_blank">Visit the site</a>
+                        <a href="<%= shopPath %>/" target="_blank">Visit the site</a>
                         <a href="<%= shopPath %>/admin/account">My Account</a>
                         <form action="<%= shopPath %>/admin/logout" method="POST">
                             <input type="hidden" name="_csrf" value="<%= csrfToken %>">
