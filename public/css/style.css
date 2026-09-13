@@ -1093,10 +1093,18 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 700; letter-spacing:
     color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.03em;
 }
 .checkout-form input, .checkout-form textarea, .admin-form input, .admin-form textarea, .admin-form select {
+    width: 100%; box-sizing: border-box;
     padding: 11px 12px; background: var(--surface-2); border: 1px solid var(--border);
     border-radius: var(--radius-sm); font-size: 0.95rem; font-family: var(--font-body); color: var(--text);
     text-transform: none; letter-spacing: normal; font-weight: 400;
     transition: border-color 0.15s, box-shadow 0.15s;
+}
+/* Textareas default to resize:both in browsers, which lets a drag to the
+   side make the box (and the whole page, on mobile) wider than the screen —
+   that's what was cutting off the delivery-charge boxes next to it. Only
+   allow vertical resizing so it can only grow downward. */
+.checkout-form textarea, .admin-form textarea {
+    resize: vertical; max-width: 100%;
 }
 .checkout-form input:focus, .checkout-form textarea:focus, .admin-form input:focus, .admin-form textarea:focus, .admin-form select:focus {
     border-color: var(--accent-2); box-shadow: 0 0 0 1px var(--accent-2); outline: none;
