@@ -15,10 +15,10 @@ const s3 = new S3Client({
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
-async function uploadImageToR2(file) {
+async function uploadImageToR2(file, folder = 'products') {
     if (!file) return null;
     const ext = path.extname(file.originalname);
-    const key = `products/${crypto.randomUUID()}${ext}`;
+    const key = `${folder}/${crypto.randomUUID()}${ext}`;
 
     await s3.send(new PutObjectCommand({
         Bucket: process.env.R2_BUCKET_NAME,
