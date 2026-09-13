@@ -184,7 +184,7 @@ router.get('/', (req, res) => {
     }
     * { box-sizing: border-box; }
     body { margin: 0; font-family: 'Hind Siliguri', sans-serif; background: var(--bg); color: var(--ink); line-height: 1.6; }
-    h1, h2, h3 { font-family: 'Poppins', sans-serif; }
+    h1, h2, h3 { font-family: 'Poppins', 'Hind Siliguri', sans-serif; }
     .container { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
     a { color: inherit; text-decoration: none; }
 
@@ -229,7 +229,7 @@ router.get('/', (req, res) => {
 
     .steps { display: flex; align-items: flex-start; justify-content: center; gap: 8px; flex-wrap: wrap; }
     .step-card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 26px 20px; text-align: center; width: 220px; }
-    .step-num { width: 34px; height: 34px; margin: 0 auto 14px; border-radius: 50%; background: var(--gradient); color: #fff; display: flex; align-items: center; justify-content: center; font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 0.95rem; }
+    .step-num { width: 34px; height: 34px; margin: 0 auto 14px; border-radius: 50%; background: var(--gradient); color: #fff; display: flex; align-items: center; justify-content: center; font-family: 'Poppins', 'Hind Siliguri', sans-serif; font-weight: 600; font-size: 0.95rem; }
     .step-card h3 { font-size: 1rem; margin: 0 0 8px; }
     .step-card p { font-size: 0.88rem; color: var(--muted); margin: 0; }
     .step-arrow { align-self: center; color: var(--line); font-size: 1.4rem; margin-top: 34px; }
@@ -237,7 +237,7 @@ router.get('/', (req, res) => {
     .packages { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; align-items: stretch; }
     .package-card { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 30px 24px; display: flex; flex-direction: column; }
     .package-card h3 { font-size: 1.1rem; margin: 0 0 10px; }
-    .package-price { font-family: 'Poppins', sans-serif; font-size: 1.6rem; font-weight: 700; }
+    .package-price { font-family: 'Poppins', 'Hind Siliguri', sans-serif; font-size: 1.6rem; font-weight: 700; }
     .package-note { font-size: 0.8rem; color: var(--muted); margin-bottom: 14px; }
     .package-blurb { font-size: 0.88rem; color: var(--muted); margin: 0 0 18px; }
     .package-features { list-style: none; padding: 0; margin: 0 0 24px; flex-grow: 1; }
@@ -478,7 +478,7 @@ router.get('/find-shop', async (req, res) => {
     }
     * { box-sizing: border-box; }
     body { margin: 0; font-family: 'Hind Siliguri', sans-serif; background: var(--bg); color: var(--ink); line-height: 1.6; }
-    h1 { font-family: 'Poppins', sans-serif; }
+    h1 { font-family: 'Poppins', 'Hind Siliguri', sans-serif; }
     a { color: inherit; }
     .container { max-width: 440px; margin: 0 auto; padding: 0 24px; }
     header.nav { padding: 20px 0; border-bottom: 1px solid var(--line); }
