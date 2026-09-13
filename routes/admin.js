@@ -848,15 +848,15 @@ router.get('/activity-log', requireRole('admin'), async (req, res) => {
     res.render('admin/activity-log', { pageTitle: 'Activity Log', logs, page, totalPages, totalCount });
 });
 
-// Shop settings — name/address/phone/email/WhatsApp, return policy, and FAQ.
-// Admin-only (not manager/moderator), and always scoped to req.shop.id — a
-// shop owner can only ever edit their own shop, never another one.
+// Shop settings — name/address/phone/email/WhatsApp, delivery charges, logo,
+// return policy, and FAQ. Admin-only (not manager/moderator), and always
+// scoped to req.shop.id — a shop owner can only ever edit their own shop.
 router.get('/settings', requireRole('admin'), (req, res) => {
     res.render('admin/settings', { pageTitle: 'Shop Settings', shop: req.shop, error: null, saved: false });
 });
 
-router.post('/settings', requireRole('admin'), async (req, res) => {
-    const { name, address, phone, email, whatsapp_number, return_policy } = req.body;
+router.post('/settings', requireRole('admin'), upload.single('logo'), verifyCsrfToken, async (req, res) => {
+    const { name, address, phone, email, whatsapp_number, return_policy, delivery_charge_dhaka, delivery_charge_outside } = req.body;
     const faqQuestions = [].concat(req.body.faq_question || []);
     const faqAnswers = [].concat(req.body.faq_answer || []);
     const faq = faqQuestions
@@ -870,9 +870,19 @@ router.post('/settings', requireRole('admin'), async (req, res) => {
     }
 
     try {
+        let logoUrl = req.shop.logo_url;
+        if (req.file) {
+            logoUrl = await uploadImageToR2(req.file, 'shop-logos');
+            if (req.shop.logo_url) await deleteImageFromR2(req.shop.logo_url);
+        }
+
         await pool.query(
-            `UPDATE shops SET name=$1, address=$2, phone=$3, email=$4, whatsapp_number=$5, return_policy=$6, faq=$7 WHERE id=$8`,
-            [name.trim(), address || null, phone || null, email || null, whatsapp_number || null, return_policy || null, JSON.stringify(faq), req.shop.id]
+            `UPDATE shops SET name=$1, address=$2, phone=$3, email=$4, whatsapp_number=$5, return_policy=$6, faq=$7,
+                delivery_charge_dhaka=$8, delivery_charge_outside=$9, logo_url=$10 WHERE id=$11`,
+            [
+                name.trim(), address || null, phone || null, email || null, whatsapp_number || null, return_policy || null, JSON.stringify(faq),
+                parseFloat(delivery_charge_dhaka) || 0, parseFloat(delivery_charge_outside) || 0, logoUrl, req.shop.id
+            ]
         );
         logActivity(req, 'Updated shop settings', name.trim());
         const { rows } = await pool.query('SELECT * FROM shops WHERE id = $1', [req.shop.id]);
@@ -880,6 +890,58 @@ router.post('/settings', requireRole('admin'), async (req, res) => {
     } catch (err) {
         console.error(err);
         res.render('admin/settings', { pageTitle: 'Shop Settings', shop: formState, error: 'সেভ করা যায়নি, আবার চেষ্টা করুন।', saved: false });
+    }
+});
+
+// My Account — any logged-in staff member (admin/manager/moderator) can
+// change their OWN username/password here. This is separate from Staff &
+// Roles, which is admin-only and manages OTHER people's accounts.
+router.get('/account', requireAdmin, async (req, res) => {
+    const { rows } = await pool.query('SELECT username FROM admins WHERE username = $1 AND shop_id = $2', [req.session.adminUsername, req.shop.id]);
+    res.render('admin/account', { pageTitle: 'My Account', currentUsernameValue: rows[0] ? rows[0].username : req.session.adminUsername, error: null, saved: false });
+});
+
+router.post('/account', requireAdmin, async (req, res) => {
+    const { current_password, new_username, new_password, confirm_password } = req.body;
+    const renderError = (message) => res.render('admin/account', {
+        pageTitle: 'My Account', currentUsernameValue: new_username || req.session.adminUsername, error: message, saved: false
+    });
+
+    if (!current_password) return renderError('নিজের বর্তমান পাসওয়ার্ড দিন — নিরাপত্তার জন্য এটা আবশ্যক।');
+
+    try {
+        const { rows } = await pool.query('SELECT * FROM admins WHERE username = $1 AND shop_id = $2', [req.session.adminUsername, req.shop.id]);
+        const account = rows[0];
+        if (!account) return renderError('অ্যাকাউন্ট খুঁজে পাওয়া যায়নি।');
+
+        const match = await bcrypt.compare(current_password, account.password_hash);
+        if (!match) return renderError('বর্তমান পাসওয়ার্ড ভুল।');
+
+        if (new_password || confirm_password) {
+            if (new_password.length < 6) return renderError('নতুন পাসওয়ার্ড কমপক্ষে ৬ ক্যারেক্টার হতে হবে।');
+            if (new_password !== confirm_password) return renderError('নতুন পাসওয়ার্ড দুইবার একই দিতে হবে।');
+        }
+
+        const finalUsername = (new_username || '').trim() || account.username;
+
+        if (finalUsername !== account.username) {
+            const existing = await pool.query('SELECT id FROM admins WHERE username = $1 AND shop_id = $2 AND id != $3', [finalUsername, req.shop.id, account.id]);
+            if (existing.rows.length > 0) return renderError('এই ইউজারনেম আগে থেকেই আছে।');
+        }
+
+        if (new_password) {
+            const hash = await bcrypt.hash(new_password, 10);
+            await pool.query('UPDATE admins SET username=$1, password_hash=$2 WHERE id=$3', [finalUsername, hash, account.id]);
+        } else {
+            await pool.query('UPDATE admins SET username=$1 WHERE id=$2', [finalUsername, account.id]);
+        }
+
+        req.session.adminUsername = finalUsername;
+        logActivity(req, 'Updated own account', finalUsername);
+        res.render('admin/account', { pageTitle: 'My Account', currentUsernameValue: finalUsername, error: null, saved: true });
+    } catch (err) {
+        console.error(err);
+        renderError('সেভ করা যায়নি, আবার চেষ্টা করুন।');
     }
 });
 
