@@ -81,6 +81,7 @@ app.use((req, res, next) => {
     res.locals.storePhone = req.shop.phone || '';
     res.locals.storeAddress = req.shop.address || '';
     res.locals.storeEmail = req.shop.email || '';
+    res.locals.storeLogo = req.shop.logo_url || '/img/logo.png';
     res.locals.shopPath = req.shopPath; // '' for the default shop, '/shop/:slug' otherwise
     res.locals.cartCount = req.session.cart
         ? Object.values(req.session.cart).reduce((a, b) => a + b, 0)
@@ -98,7 +99,7 @@ app.use((req, res, next) => {
     // Sensible defaults for pages that don't set their own OG tags
     res.locals.ogTitle = res.locals.storeName;
     res.locals.ogDescription = 'বাংলাদেশের সেরা অনলাইন ইলেকট্রনিক্স ও গ্যাজেট শপ — অরিজিনাল পণ্য, ক্যাশ অন ডেলিভারি।';
-    res.locals.ogImage = `${res.locals.baseUrl}/img/logo.png`;
+    res.locals.ogImage = res.locals.storeLogo.startsWith('http') ? res.locals.storeLogo : `${res.locals.baseUrl}${res.locals.storeLogo}`;
     next();
 });
 
