@@ -166,7 +166,7 @@ router.get('/shops', async (req, res) => {
             </div>
             <div class="entry-actions">
                 <a class="entry-link muted" href="/platform/shops/${s.id}/edit?key=${esc(key)}">এডিট</a>
-                <a class="entry-link" href="${s.slug === 'default' ? '/' : '/shop/' + s.slug}" target="_blank">দেখুন</a>
+                <a class="entry-link" href="/shop/${s.slug}" target="_blank">দেখুন</a>
             </div>
         </div>
     `).join('') : `<p class="empty">এখনও কোনো শপ যোগ করা হয়নি — নিচের ফর্ম দিয়ে প্রথমটি যোগ করুন।</p>`;
