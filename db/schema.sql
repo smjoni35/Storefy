@@ -227,6 +227,18 @@ ALTER TABLE products ADD COLUMN IF NOT EXISTS shop_id INTEGER NOT NULL DEFAULT 1
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS shop_id INTEGER NOT NULL DEFAULT 1 REFERENCES shops(id);
 ALTER TABLE coupons ADD COLUMN IF NOT EXISTS shop_id INTEGER NOT NULL DEFAULT 1 REFERENCES shops(id);
 ALTER TABLE admins ADD COLUMN IF NOT EXISTS shop_id INTEGER NOT NULL DEFAULT 1 REFERENCES shops(id);
+
+-- Usernames only need to be unique WITHIN a shop, not across the whole
+-- platform — otherwise two different shop owners could never both pick
+-- "admin". Needed now that owners can rename their own username themselves.
+ALTER TABLE admins DROP CONSTRAINT IF EXISTS admins_username_key;
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'admins_shop_username_unique') THEN
+        ALTER TABLE admins ADD CONSTRAINT admins_shop_username_unique UNIQUE (shop_id, username);
+    END IF;
+END $$;
+
 ALTER TABLE customers ADD COLUMN IF NOT EXISTS shop_id INTEGER NOT NULL DEFAULT 1 REFERENCES shops(id);
 ALTER TABLE activity_log ADD COLUMN IF NOT EXISTS shop_id INTEGER NOT NULL DEFAULT 1 REFERENCES shops(id);
 
@@ -236,6 +248,8 @@ CREATE INDEX IF NOT EXISTS idx_admins_shop_id ON admins(shop_id);
 
 -- Self-service shop content: each shop's own owner edits these from
 -- /admin/settings instead of asking the platform owner to change them.
+ALTER TABLE shops ADD COLUMN IF NOT EXISTS logo_url TEXT;
+
 -- DEFAULT here backfills every existing shop with today's static copy
 -- (nothing visibly changes until an owner edits it), and new shops get
 -- the same starting point automatically.
