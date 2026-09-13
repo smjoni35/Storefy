@@ -43,41 +43,47 @@ router.get('/shops', async (req, res) => {
             </div>
             <a class="entry-link" href="${s.slug === 'default' ? '/' : '/shop/' + s.slug}" target="_blank">দেখুন</a>
         </div>
-    `).join('') : `<p class="empty">এখনও কোনো শপ নিবন্ধিত হয়নি — নিচের ফর্ম দিয়ে প্রথমটি যোগ করুন।</p>`;
+    `).join('') : `<p class="empty">এখনও কোনো শপ যোগ করা হয়নি — নিচের ফর্ম দিয়ে প্রথমটি যোগ করুন।</p>`;
 
     res.send(`
         <!DOCTYPE html><html lang="bn"><head><meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Storefy — শপ রেজিস্ট্রি</title>
+        <title>Storefy — শপ ম্যানেজার</title>
         <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Poppins:wght@600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
         <style>
             :root {
-                --paper: #F7F5EF;
-                --ink: #1C1B18;
-                --muted: #8B8477;
-                --line: #DDD7C7;
-                --accent: #1F5D50;
-                --accent-soft: #E3EEE8;
-                --danger: #B14434;
+                --bg: #FFFFFF;
+                --surface: #F8F9FC;
+                --ink: #0F172A;
+                --muted: #64748B;
+                --line: #E4E7EC;
+                --blue: #2F80ED;
+                --purple: #7B2FF7;
+                --gradient: linear-gradient(90deg, var(--blue), var(--purple));
+                --accent-soft: #EEF1FF;
+                --danger: #DC3B5D;
+                --danger-soft: #FCEAEF;
             }
             * { box-sizing: border-box; }
             body {
                 font-family: 'Hind Siliguri', sans-serif;
-                background: var(--paper);
+                background: var(--bg);
                 color: var(--ink);
                 max-width: 480px;
                 margin: 0 auto;
                 padding: 28px 20px 60px;
                 line-height: 1.5;
             }
-            .brand { display: flex; align-items: baseline; gap: 10px; margin-bottom: 2px; }
-            .brand-mark { font-weight: 700; font-size: 1.5rem; letter-spacing: -0.01em; }
-            .brand-tag { font-size: 0.8rem; color: var(--muted); }
-            .lede { font-size: 0.88rem; color: var(--muted); margin: 0 0 28px; }
+            .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+            .brand-icon { flex: 0 0 auto; }
+            .brand-mark { font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 1.4rem; letter-spacing: -0.01em; color: var(--ink); }
+            .brand-mark .fy { background: var(--gradient); -webkit-background-clip: text; background-clip: text; color: transparent; }
+            .lede { font-size: 0.86rem; color: var(--muted); margin: 0 0 28px; }
 
             h2 {
-                font-size: 1.05rem;
+                font-family: 'Poppins', sans-serif;
+                font-size: 0.98rem;
                 font-weight: 600;
                 margin: 0 0 14px;
                 padding-bottom: 10px;
@@ -85,21 +91,22 @@ router.get('/shops', async (req, res) => {
             }
             section { margin-bottom: 36px; }
 
-            .entry { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
-            .entry:last-child { border-bottom: none; }
-            .entry-id { font-family: 'IBM Plex Mono', monospace; font-size: 0.78rem; color: var(--muted); flex: 0 0 auto; }
+            .entry { display: flex; align-items: center; gap: 12px; padding: 12px 10px; border-radius: 10px; }
+            .entry + .entry { margin-top: 2px; }
+            .entry:nth-child(odd) { background: var(--surface); }
+            .entry-id { font-family: 'IBM Plex Mono', monospace; font-size: 0.76rem; color: var(--muted); flex: 0 0 auto; }
             .entry-body { flex: 1 1 auto; min-width: 0; }
             .entry-name { font-weight: 600; font-size: 0.95rem; }
             .entry-meta { display: flex; align-items: center; gap: 10px; margin-top: 2px; }
-            .entry-slug { font-family: 'IBM Plex Mono', monospace; font-size: 0.76rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-            .status { font-size: 0.74rem; padding: 1px 8px; border-radius: 3px; }
-            .status.is-active { background: var(--accent-soft); color: var(--accent); }
-            .status.is-inactive { background: #F3E4E1; color: var(--danger); }
-            .entry-link { flex: 0 0 auto; font-size: 0.85rem; color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+            .entry-slug { font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            .status { font-size: 0.72rem; font-weight: 600; padding: 1px 8px; border-radius: 20px; }
+            .status.is-active { background: var(--accent-soft); color: var(--purple); }
+            .status.is-inactive { background: var(--danger-soft); color: var(--danger); }
+            .entry-link { flex: 0 0 auto; font-size: 0.84rem; font-weight: 600; color: var(--blue); text-decoration: none; }
             .empty { color: var(--muted); font-size: 0.9rem; padding: 8px 0; }
 
             fieldset { border: none; padding: 0; margin: 0 0 24px; }
-            .field-group-label { font-weight: 600; font-size: 0.88rem; margin: 0 0 12px; }
+            .field-group-label { font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 0.84rem; margin: 0 0 12px; }
             label { display: block; font-size: 0.82rem; color: var(--muted); margin-bottom: 4px; }
             .field { margin-bottom: 16px; }
             input {
@@ -107,44 +114,54 @@ router.get('/shops', async (req, res) => {
                 font-family: inherit;
                 font-size: 0.95rem;
                 color: var(--ink);
-                background: transparent;
-                border: none;
-                border-bottom: 1px solid var(--line);
-                padding: 6px 2px;
+                background: var(--surface);
+                border: 1px solid var(--line);
+                border-radius: 8px;
+                padding: 10px 12px;
                 outline: none;
             }
-            input:focus { border-bottom: 1.5px solid var(--accent); }
-            input::placeholder { color: #B7B0A0; }
-            .row-2 { display: flex; gap: 16px; }
+            input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--accent-soft); }
+            input::placeholder { color: #A3ADBD; }
+            .row-2 { display: flex; gap: 12px; }
             .row-2 .field { flex: 1; }
 
             button {
                 width: 100%;
-                font-family: inherit;
-                font-size: 0.98rem;
+                font-family: 'Poppins', sans-serif;
+                font-size: 0.96rem;
                 font-weight: 600;
-                background: var(--accent);
-                color: var(--paper);
+                background: var(--gradient);
+                color: #fff;
                 border: none;
-                border-radius: 4px;
+                border-radius: 8px;
                 padding: 13px;
                 margin-top: 8px;
                 cursor: pointer;
             }
-            button:hover { background: #17473d; }
-            button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+            button:hover { opacity: 0.92; }
+            button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
         </style></head><body>
 
-        <div class="brand"><span class="brand-mark">Storefy</span><span class="brand-tag">শপ রেজিস্ট্রি</span></div>
-        <p class="lede">আপনার প্ল্যাটফর্মের অধীনে থাকা সব শপ এখানে দেখুন এবং নতুন শপ নিবন্ধন করুন।</p>
+        <div class="brand">
+            <svg class="brand-icon" width="26" height="26" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stop-color="#2F80ED"/><stop offset="100%" stop-color="#7B2FF7"/>
+                </linearGradient></defs>
+                <path d="M50 6 L92 27 V73 L50 94 L8 73 V27 Z" fill="url(#g1)"/>
+                <path d="M20 34 L80 34 L50 50 Z" fill="#FFFFFF" opacity="0.9"/>
+                <path d="M20 66 L80 66 L50 50 Z" fill="#FFFFFF" opacity="0.55"/>
+            </svg>
+            <span class="brand-mark">Store<span class="fy">fy</span></span>
+        </div>
+        <p class="lede">আপনার প্ল্যাটফর্মের অধীনে থাকা সব শপ এখানে দেখুন এবং নতুন শপ যোগ করুন।</p>
 
         <section>
-            <h2>নিবন্ধিত শপ</h2>
+            <h2>আপনার শপসমূহ</h2>
             ${entriesHtml}
         </section>
 
         <section>
-            <h2>নতুন শপ নিবন্ধন</h2>
+            <h2>নতুন শপ যোগ করুন</h2>
             <form method="POST" action="/platform/shops?key=${esc(key)}">
                 <input type="hidden" name="key" value="${esc(key)}">
                 <input type="hidden" name="_csrf" value="${esc(req.session.csrfToken)}">
@@ -201,7 +218,7 @@ router.get('/shops', async (req, res) => {
                     </div>
                 </fieldset>
 
-                <button type="submit">শপ নিবন্ধন করুন</button>
+                <button type="submit">শপ তৈরি করুন</button>
             </form>
         </section>
     </body></html>`);
