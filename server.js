@@ -13,6 +13,7 @@ const adminRoutes = require('./routes/admin');
 const accountRoutes = require('./routes/customer');
 const webhookRoutes = require('./routes/webhooks');
 const platformRoutes = require('./routes/platform');
+const brandRoutes = require('./routes/brand');
 
 const app = express();
 
@@ -54,6 +55,12 @@ app.use(express.static(path.join(__dirname, 'public')));
 // secret check instead (see routes/webhooks.js).
 app.use('/webhooks', webhookRoutes);
 
+// Storefy's own public brand/marketing site. Mounted before resolveShop —
+// root (/) is no longer a shop, it's this. Doesn't need session/CSRF (no
+// forms), so it's fine before that middleware too. Any path it doesn't
+// define (i.e. everything except GET /) just falls through untouched.
+app.use('/', brandRoutes);
+
 app.use(session({
     store: new pgSession({ pool, tableName: 'session' }),
     secret: process.env.SESSION_SECRET || 'dev-only-insecure-secret-change-me',
@@ -72,6 +79,13 @@ app.use(session({
 app.use(attachCsrfToken);
 app.use(csrfGate);
 
+// Platform (super-admin) routes are shop-agnostic — they manage the `shops`
+// table itself, so they must run BEFORE resolveShop, or every /platform/...
+// request would get redirected as an "unknown shop path" by the legacy
+// redirect in middleware/shop.js. Still needs session/CSRF above (its forms
+// use req.session.csrfToken), just not a resolved shop.
+app.use('/platform', platformRoutes);
+
 // Resolves req.shop / req.shopPath from the URL (see middleware/shop.js).
 // Must run before the locals below since they read from req.shop.
 app.use(resolveShop);
@@ -82,7 +96,7 @@ app.use((req, res, next) => {
     res.locals.storeAddress = req.shop.address || '';
     res.locals.storeEmail = req.shop.email || '';
     res.locals.storeLogo = req.shop.logo_url || '/img/logo.png';
-    res.locals.shopPath = req.shopPath; // '' for the default shop, '/shop/:slug' otherwise
+    res.locals.shopPath = req.shopPath; // always '/shop/:slug' now — every shop lives under a slug
     res.locals.cartCount = req.session.cart
         ? Object.values(req.session.cart).reduce((a, b) => a + b, 0)
         : 0;
@@ -106,7 +120,6 @@ app.use((req, res, next) => {
 app.use('/', shopRoutes);
 app.use('/admin', adminRoutes);
 app.use('/account', accountRoutes);
-app.use('/platform', platformRoutes);
 
 app.use((req, res) => {
     res.status(404).render('404');
