@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Account</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <style>.success-msg { background: #EAFBF1; color: #1E8E5A; padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 0.9rem; }</style>
+</head>
+<body>
+    <%- include('nav') %>
+    <div class="container admin-form-page">
+        <h1>My Account</h1>
+        <% if (saved) { %><p class="success-msg">সেভ হয়েছে।</p><% } %>
+        <% if (error) { %><p class="error-msg"><%= error %></p><% } %>
+
+        <form action="<%= shopPath %>/admin/account" method="POST" class="admin-form">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+            <label>ইউজারনেম
+                <input type="text" name="new_username" value="<%= currentUsernameValue %>">
+            </label>
+            <label>নতুন পাসওয়ার্ড <span class="field-hint">পাসওয়ার্ড বদলাতে না চাইলে খালি রাখুন।</span>
+                <input type="password" name="new_password" minlength="6">
+            </label>
+            <label>নতুন পাসওয়ার্ড আবার লিখুন
+                <input type="password" name="confirm_password" minlength="6">
+            </label>
+            <label>বর্তমান পাসওয়ার্ড * <span class="field-hint">যেকোনো পরিবর্তন সেভ করতে নিরাপত্তার জন্য বর্তমান পাসওয়ার্ড দিতে হবে।</span>
+                <input type="password" name="current_password" required>
+            </label>
+
+            <button type="submit" class="btn-primary">Save</button>
+        </form>
+    </div>
+    <%- include('nav-end') %>
+</body>
+</html>

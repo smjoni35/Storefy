@@ -10,7 +10,7 @@
     <div class="admin-sidebar-overlay" id="adminSidebarOverlay"></div>
     <aside class="admin-sidebar" id="adminSidebar">
         <a href="<%= shopPath %>/admin/dashboard" class="admin-sidebar-brand">
-            <img src="/img/logo.png" alt="<%= storeName %>" class="logo-img-sm">
+            <img src="<%= storeLogo %>" alt="<%= storeName %>" class="logo-img-sm">
             <span class="admin-sidebar-brand-text">
                 <strong><%= storeName %></strong>
                 <span>Admin প্যানেল</span>
@@ -94,6 +94,7 @@
                             <% if (currentRole) { %><span class="role-badge role-<%= currentRole %>"><%= currentRole.charAt(0).toUpperCase() + currentRole.slice(1) %></span><% } %>
                         </div>
                         <a href="/" target="_blank">Visit the site</a>
+                        <a href="<%= shopPath %>/admin/account">My Account</a>
                         <form action="<%= shopPath %>/admin/logout" method="POST">
                             <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                             <button type="submit" class="link-btn">Logout</button>

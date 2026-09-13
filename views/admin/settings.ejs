@@ -24,10 +24,18 @@
         <% if (saved) { %><p class="success-msg">সেভ হয়েছে।</p><% } %>
         <% if (error) { %><p class="error-msg"><%= error %></p><% } %>
 
-        <form action="<%= shopPath %>/admin/settings" method="POST" class="admin-form" id="settingsForm">
+        <form action="<%= shopPath %>/admin/settings" method="POST" enctype="multipart/form-data" class="admin-form" id="settingsForm">
             <input type="hidden" name="_csrf" value="<%= csrfToken %>">
 
-            <p class="field-group-label">শপের তথ্য</p>
+            <p class="field-group-label">শপের লোগো</p>
+            <% if (shop.logo_url) { %>
+                <img src="<%= shop.logo_url %>" alt="Current logo" style="max-width: 120px; max-height: 120px; display: block; margin-bottom: 10px; border-radius: 8px; border: 1px solid #E4E7EC;">
+            <% } %>
+            <label>নতুন লোগো আপলোড করুন <span class="field-hint">JPG/PNG, ৫MB পর্যন্ত। খালি রাখলে আগেরটাই থাকবে।</span>
+                <input type="file" name="logo" accept="image/*">
+            </label>
+
+            <p class="field-group-label" style="margin-top: 28px;">শপের তথ্য</p>
             <label>শপের নাম *
                 <input type="text" name="name" value="<%= shop.name || '' %>" required>
             </label>
@@ -43,6 +51,16 @@
             <label>WhatsApp নম্বর <span class="field-hint">দেশের কোডসহ, শুধু সংখ্যা — যেমন 8801735698806। FAQ ও রিটার্ন পলিসি পেজে কাস্টমারদের WhatsApp বাটনে এটাই ব্যবহার হবে।</span>
                 <input type="text" name="whatsapp_number" value="<%= shop.whatsapp_number || '' %>">
             </label>
+
+            <p class="field-group-label" style="margin-top: 28px;">ডেলিভারি চার্জ</p>
+            <div style="display: flex; gap: 12px;">
+                <label style="flex: 1;">ঢাকার মধ্যে (৳)
+                    <input type="number" step="0.01" min="0" name="delivery_charge_dhaka" value="<%= shop.delivery_charge_dhaka || 0 %>">
+                </label>
+                <label style="flex: 1;">ঢাকার বাইরে (৳)
+                    <input type="number" step="0.01" min="0" name="delivery_charge_outside" value="<%= shop.delivery_charge_outside || 0 %>">
+                </label>
+            </div>
 
             <p class="field-group-label" style="margin-top: 28px;">রিটার্ন ও এক্সচেঞ্জ পলিসি</p>
             <label>পলিসি টেক্সট <span class="field-hint">প্রতিটা প্যারাগ্রাফের মাঝে একটা খালি লাইন দিন — সেভাবেই ওয়েবসাইটে আলাদা আলাদা প্যারাগ্রাফ হিসেবে দেখাবে।</span>
